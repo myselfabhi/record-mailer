@@ -10,40 +10,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
   margin-bottom: 30px;
+}
+
+.header-text {
+  text-align: center;
+  width: 100%;
+}
+
+.title-with-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
   flex-wrap: wrap;
 }
 
-.header-icon {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  padding: 20px;
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.header-icon .icon {
-  width: 40px;
-  height: 40px;
-  color: white;
+.npst-header-logo {
+  width: 60px;
+  height: 60px;
+  opacity: 0.9;
 }
 
 .header-text h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  margin-bottom: 10px;
-  background: linear-gradient(45deg, #fff, #f0f9ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #000000;
+  margin: 0;
 }
 
 .header-text p {
   font-size: 1.1rem;
-  opacity: 0.9;
-  max-width: 500px;
+  color: #000000;
+  opacity: 0.8;
+  width: 100%;
+  max-width: none;
 }
 
 .header-features {
@@ -57,28 +59,28 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.8);
   padding: 10px 20px;
   border-radius: 25px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
 .feature:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.9);
   transform: translateY(-2px);
 }
 
 .feature-icon {
   width: 18px;
   height: 18px;
-  color: #fbbf24;
+  color: #3b82f6;
 }
 
 .feature span {
   font-size: 0.9rem;
   font-weight: 500;
+  color: #000000;
 }
 
 /* Responsive Design */

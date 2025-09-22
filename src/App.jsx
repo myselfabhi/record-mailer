@@ -5,7 +5,6 @@ import FileUpload from './components/FileUpload'
 import Processing from './components/Processing'
 import Results from './components/Results'
 import ErrorMessage from './components/ErrorMessage'
-import Footer from './components/Footer'
 import { processFile } from './utils/fileProcessor'
 import './App.css'
 
@@ -99,8 +98,6 @@ function App() {
             />
           )}
         </main>
-        
-        <Footer />
       </div>
     </div>
   )

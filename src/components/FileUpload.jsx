@@ -70,6 +70,12 @@ const FileUpload = ({ onFileUpload }) => {
           <p>Maximum file size: 10MB</p>
         </div>
       </div>
+      
+      <div className="made-by-section">
+        <p className="made-by-title">Made By</p>
+        <p className="made-by-name">Abhinav Verma</p>
+        <p className="made-by-role">(Associate Developer)</p>
+      </div>
     </div>
   )
 }
