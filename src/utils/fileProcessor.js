@@ -220,8 +220,13 @@ const formatIds = (rawText) => {
     .map(line => line.trim())
     .filter(line => line)
   
-  // Wrap each line with quotes and comma
-  const formattedValues = lines.map(line => `'${line}',`)
+  // Wrap each line with quotes and comma, except the last one
+  const formattedValues = lines.map((line, index) => {
+    if (index === lines.length - 1) {
+      return `'${line}'`  // Last entry without comma
+    }
+    return `'${line}',`   // All other entries with comma
+  })
   
   // Create the complete SQL query template
   const sqlQuery = `Hi @Pankaj Kumar
