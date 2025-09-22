@@ -11,15 +11,22 @@ export const processFile = async (file) => {
     let content = ''
     
     // Determine file type and read content
+    console.log('File type:', file.type, 'File name:', file.name) // Debug log
+    
     if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      console.log('Reading as text file')
       content = await readTextFile(file)
     } else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+      console.log('Reading as CSV file')
       content = await readCSVFile(file)
     } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      console.log('Reading as Excel file')
       content = await readExcelFile(file)
     } else {
       throw new Error('Unsupported file format. Please upload TXT, CSV, or Excel files.')
     }
+    
+    console.log('Final content length:', content.length) // Debug log
 
     // Extract UTXID values
     const utxidValues = extractUTXIDValues(content)
@@ -28,8 +35,8 @@ export const processFile = async (file) => {
       throw new Error('No UTXID values found. Please ensure your file contains a "UTXID" heading followed by values.')
     }
 
-    // Format the values
-    return formatIds(utxidValues.join('\n'))
+    // Format the values - pass the full content for date extraction
+    return formatIds(content)
     
   } catch (error) {
     console.error('File processing error:', error)
@@ -62,12 +69,16 @@ const readCSVFile = (file) => {
     reader.onload = (e) => {
       try {
         const csvText = e.target.result
+        console.log('Raw CSV text:', csvText.substring(0, 500)) // Debug log
+        
         // Parse CSV and convert back to text format
         Papa.parse(csvText, {
           complete: (results) => {
+            console.log('CSV parsed data:', results.data.slice(0, 3)) // Debug log - first 3 rows
             const textContent = results.data
               .map(row => Array.isArray(row) ? row.join('\t') : row)
               .join('\n')
+            console.log('CSV converted text:', textContent.substring(0, 500)) // Debug log
             resolve(textContent)
           },
           error: (error) => reject(new Error('Failed to parse CSV file'))
@@ -104,9 +115,13 @@ const readExcelFile = (file) => {
           defval: ''
         })
         
+        console.log('Excel data:', jsonData) // Debug log
+        
         const textContent = jsonData
           .map(row => Array.isArray(row) ? row.join('\t') : String(row))
           .join('\n')
+        
+        console.log('Converted text content:', textContent) // Debug log
         
         resolve(textContent)
       } catch (error) {
@@ -128,6 +143,7 @@ const extractUTXIDValues = (content) => {
   const utxidValues = []
   let foundUTXID = false
 
+  // First, try to find UTXID heading (for text/CSV files)
   for (let line of lines) {
     const trimmedLine = line.trim()
     
@@ -151,6 +167,23 @@ const extractUTXIDValues = (content) => {
       }
     }
   }
+
+  // If no UTXID heading found, assume it's an Excel file with direct data
+  if (utxidValues.length === 0) {
+    console.log('No UTXID heading found, processing as direct data')
+    for (let line of lines) {
+      const trimmedLine = line.trim()
+      if (trimmedLine) {
+        // Extract transaction ID from this line
+        const transactionId = extractTransactionId(trimmedLine)
+        if (transactionId) {
+          utxidValues.push(transactionId)
+        }
+      }
+    }
+  }
+  
+  console.log('Found UTXID values:', utxidValues.length) // Debug log
 
   return utxidValues
 }
@@ -220,22 +253,77 @@ const formatIds = (rawText) => {
     .map(line => line.trim())
     .filter(line => line)
   
-  // Wrap each line with quotes and comma, except the last one
-  const formattedValues = lines.map((line, index) => {
-    if (index === lines.length - 1) {
-      return `'${line}'`  // Last entry without comma
+  // Extract date from the data
+  let extractedDate = 'SHTDAT'
+  
+  // Try to find date in the first few lines
+  for (let i = 0; i < Math.min(3, lines.length); i++) {
+    const line = lines[i]
+    console.log(`Line ${i}:`, line) // Debug log
+    
+    // Split by tab first (Excel uses tabs), then by spaces
+    const columns = line.split('\t')
+    console.log(`Tab-separated columns for line ${i}:`, columns) // Debug log
+    
+    // If no tabs, try space separation
+    if (columns.length === 1) {
+      const spaceColumns = line.split(/\s+/)
+      console.log(`Space-separated columns for line ${i}:`, spaceColumns) // Debug log
+      
+      // Look for date in each column
+      for (let j = 0; j < spaceColumns.length; j++) {
+        const column = spaceColumns[j]
+        const columnDateMatch = column.match(/(\d{2}-\d{2}-\d{4})/)
+        if (columnDateMatch) {
+          // Convert from DD-MM-YYYY to YYYY-MM-DD format
+          const [day, month, year] = columnDateMatch[1].split('-')
+          extractedDate = `${year}-${month}-${day}`
+          console.log(`Found date in space column ${j}:`, extractedDate) // Debug log
+          break
+        }
+      }
+    } else {
+      // Look for date in each tab-separated column
+      for (let j = 0; j < columns.length; j++) {
+        const column = columns[j]
+        const columnDateMatch = column.match(/(\d{2}-\d{2}-\d{4})/)
+        if (columnDateMatch) {
+          // Convert from DD-MM-YYYY to YYYY-MM-DD format
+          const [day, month, year] = columnDateMatch[1].split('-')
+          extractedDate = `${year}-${month}-${day}`
+          console.log(`Found date in tab column ${j}:`, extractedDate) // Debug log
+          break
+        }
+      }
     }
-    return `'${line}',`   // All other entries with comma
+    
+    if (extractedDate !== 'SHTDAT') {
+      break
+    }
+  }
+  
+  // Extract only transaction IDs (COB1F... values)
+  const transactionIds = lines.map(line => {
+    const transactionId = extractTransactionId(line)
+    return transactionId
+  }).filter(id => id) // Remove null/undefined values
+  
+  // Wrap each transaction ID with quotes and comma, except the last one
+  const formattedValues = transactionIds.map((id, index) => {
+    if (index === transactionIds.length - 1) {
+      return `'${id}'`  // Last entry without comma
+    }
+    return `'${id}',`   // All other entries with comma
   })
   
   // Create the complete SQL query template
-  const sqlQuery = `Hi @Pankaj Kumar
- TimePay_Daily BBPS Refunds Valid_Records query.
+  const sqlQuery = `Hi @Pankaj Kumar @Saloni Sharma
+TimePay_Daily BBPS Refunds Valid_Records query.
 
 @Jitendra Sir, Kindly approve.
 
 
-UPDATE customertxns SET initiateRefundDate = '2025-09-18 00:00:00', completeRefundDate='2025-09-18 00:00:00', bbpsState='refund_completed_manual', bbpsRefundStatus='2' WHERE txnId IN (
+UPDATE customertxns SET initiateRefundDate = '${extractedDate} 00:00:00', completeRefundDate='${extractedDate} 00:00:00', bbpsState='refund_completed_manual', bbpsRefundStatus='2' WHERE txnId IN (
 ${formattedValues.join('\n')}
 ) AND status='2' AND refId IS NOT NULL AND refId != 'null';`
   
